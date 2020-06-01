@@ -31,3 +31,4 @@ jobs:
               VGMPlay/*.dll
               VGMPlay/*.ini
               VGMPlay/*.txt
+              !VGMPlay/vgmspec171.txt
