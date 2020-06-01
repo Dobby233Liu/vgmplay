@@ -10,9 +10,8 @@ jobs:
       - uses: seanmiddleditch/gha-setup-vsdevenv@v1
       - uses: microsoft/setup-msbuild@master
       - run: |
-          C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\vsvarsall.bat
+          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\vsvarsall.bat"
           msbuild VGMPlay\\VGMPlay.sln /p:Platform=Win32;Configuration=Release;PlatformToolset=v142
-
         shell: cmd # forced to do so
       - uses: actions/upload-artifact@v2
         with:
