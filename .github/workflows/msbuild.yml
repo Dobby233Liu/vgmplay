@@ -11,8 +11,8 @@ jobs:
       - uses: microsoft/setup-msbuild@master
       - run: |
           for /f "delims=" %%d in ('dir /s /b "%VSINSTALLDIR%\vcvarsall.bat"') do @set myVCVARSALL=%%d
-          if not defined myVCVARSALL exit 1
-          call %myVCVARSALL%
+          if not defined myVCVARSALL exit 255
+          call "%myVCVARSALL%"
           msbuild VGMPlay\\VGMPlay.sln /p:Platform=Win32;Configuration=Release;PlatformToolset=v142
         shell: cmd # forced to do so
       - uses: actions/upload-artifact@v2
