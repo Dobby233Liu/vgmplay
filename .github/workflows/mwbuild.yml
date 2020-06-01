@@ -21,15 +21,13 @@ jobs:
 #         call "%myVCVARSALL%" amd64 10.0.18362.0
 #         msbuild VGMPlay\\VGMPlay.sln /p:Platform=x64;Configuration=Release;PlatformToolset=v142
 #       shell: cmd # forced to do so
-#     - uses: actions/upload-artifact@v2
-#       with:
-#         # Artifact name
-#         name: VGMPlay-CLI-win32-msvc
-#         # A file, directory or wildcard pattern that describes what to upload
-#         path: |
-#             VGMPlay/Release_x64/*.pdb
-#             VGMPlay/Release_x64/*.exe
-#             VGMPlay/Release_x64/*.dll
-#             VGMPlay/Release_x64/*.ini
-#             VGMPlay/Release_x64/*.txt
-#             !Release/vc142.pdb
+      - uses: actions/upload-artifact@v2
+        with:
+          # Artifact name
+          name: VGMPlay-CLI-win32-mingw
+          # A file, directory or wildcard pattern that describes what to upload
+          path: |
+              VGMPlay/*.exe
+              VGMPlay/*.dll
+              VGMPlay/*.ini
+              VGMPlay/*.txt
