@@ -424,8 +424,7 @@ void OPN2_DoRegWrite(ym3438_t *chip)
                 }
                 break;
             case 0x2a: /* DAC data */
-                chip->dacdata &= 0x01;
-                chip->dacdata |= (chip->write_data ^ 0x80) << 1;
+                chip->dacdata |= (chip->write_data) << 1;
                 break;
             case 0x2b: /* DAC enable */
                 chip->dacen = chip->write_data >> 7;
@@ -435,7 +434,6 @@ void OPN2_DoRegWrite(ym3438_t *chip)
                 {
                     chip->mode_test_2c[i] = (chip->write_data >> i) & 0x01;
                 }
-                chip->dacdata &= 0x1fe;
                 chip->dacdata |= chip->mode_test_2c[3];
                 chip->eg_custom_timer = !chip->mode_test_2c[7] && chip->mode_test_2c[6];
                 break;
@@ -620,7 +618,6 @@ void OPN2_EnvelopeADSR(ym3438_t *chip)
     {
         /* Inverse */
         ssg_level = 512 - level;
-        ssg_level &= 0x3ff;
     }
     if (koff_event)
     {
@@ -704,13 +701,13 @@ void OPN2_EnvelopeADSR(ym3438_t *chip)
     if (!kon_event && !chip->eg_ssg_hold_up_latch[slot] && chip->eg_state[slot] != eg_num_attack && eg_off)
     {
         nextstate = eg_num_release;
-        nextlevel = 0x3ff;
+        nextlevel = 0;
     }
 
     nextlevel += inc;
 
     chip->eg_kon[slot] = chip->eg_kon_latch[slot];
-    chip->eg_level[slot] = (Bit16u)nextlevel & 0x3ff;
+    chip->eg_level[slot] = (Bit16u)nextlevel;
     chip->eg_state[slot] = nextstate;
 }
 
@@ -737,17 +734,17 @@ void OPN2_EnvelopePrepare(ym3438_t *chip)
         {
             switch (sum)
             {
-            case 12:
-                inc = 1;
-                break;
-            case 13:
-                inc = (rate >> 1) & 0x01;
-                break;
-            case 14:
-                inc = rate & 0x01;
-                break;
-            default:
-                break;
+				case 12:
+					inc = 1;
+					break;
+				case 13:
+					inc = (rate >> 1) & 0x01;
+					break;
+				case 14:
+					inc = rate & 0x01;
+					break;
+				default:
+					break;
             }
         }
         else
@@ -771,20 +768,20 @@ void OPN2_EnvelopePrepare(ym3438_t *chip)
     }
     switch (rate_sel)
     {
-    case eg_num_attack:
-        chip->eg_rate = chip->ar[slot];
-        break;
-    case eg_num_decay:
-        chip->eg_rate = chip->dr[slot];
-        break;
-    case eg_num_sustain:
-        chip->eg_rate = chip->sr[slot];
-        break;
-    case eg_num_release:
-        chip->eg_rate = (chip->rr[slot] << 1) | 0x01;
-        break;
-    default:
-        break;
+		case eg_num_attack:
+			chip->eg_rate = chip->ar[slot];
+			break;
+		case eg_num_decay:
+			chip->eg_rate = chip->dr[slot];
+			break;
+		case eg_num_sustain:
+			chip->eg_rate = chip->sr[slot];
+			break;
+		case eg_num_release:
+			chip->eg_rate = (chip->rr[slot] << 1) | 0x01;
+			break;
+		default:
+			break;
     }
     chip->eg_ksv = chip->pg_kcode >> (chip->ks[slot] ^ 0x03);
     if (chip->am[slot])
@@ -818,7 +815,6 @@ void OPN2_EnvelopeGenerate(ym3438_t *chip)
     {
         level = 0;
     }
-    level &= 0x3ff;
 
     /* Apply AM LFO */
     level += chip->eg_lfo_am;
@@ -827,10 +823,6 @@ void OPN2_EnvelopeGenerate(ym3438_t *chip)
     if (!(chip->mode_csm && chip->channel == 2 + 1))
     {
         level += chip->eg_tl[0] << 3;
-    }
-    if (level > 0x3ff)
-    {
-        level = 0x3ff;
     }
     chip->eg_out[slot] = level;
 }
@@ -929,15 +921,6 @@ void OPN2_ChGenerate(ym3438_t *chip)
         add += chip->fm_out[slot] >> 5;
     }
     sum = acc + add;
-    /* Clamp */
-    if (sum > 255)
-    {
-        sum = 255;
-    }
-    else if(sum < -256)
-    {
-        sum = -256;
-    }
 
     if (op == 0 || test_dac)
     {
@@ -974,8 +957,6 @@ void OPN2_ChOutput(ym3438_t *chip)
     if (((cycles >> 2) == 1 && chip->dacen) || test_dac)
     {
         out = (Bit16s)chip->dacdata;
-        out <<= 7;
-        out >>= 7;
     }
     else
     {
@@ -989,11 +970,6 @@ void OPN2_ChOutput(ym3438_t *chip)
         out_en = ((cycles & 3) == 3) || test_dac;
         /* YM2612 DAC emulation(not verified) */
         sign = out >> 8;
-        if (out >= 0)
-        {
-            out++;
-            sign++;
-        }
         if (chip->ch_lock_l && out_en)
         {
             chip->mol = out;
@@ -1010,18 +986,10 @@ void OPN2_ChOutput(ym3438_t *chip)
         {
             chip->mor = sign;
         }
-        /* Amplify signal */
-        chip->mol *= 3;
-        chip->mor *= 3;
     }
     else
     {
         out_en = ((cycles & 3) != 0) || test_dac;
-        /* Discrete YM3438 seems has the ladder effect too */
-        if (out >= 0 && chip_type == ym3438_type_discrete)
-        {
-            out++;
-        }
         if (chip->ch_lock_l && out_en)
         {
             chip->mol = out;
@@ -1037,18 +1005,11 @@ void OPN2_FMGenerate(ym3438_t *chip)
 {
     Bit32u slot = (chip->slot + 19) % 24;
     /* Calculate phase */
-    Bit16u phase = (chip->fm_mod[slot] + (chip->pg_phase[slot] >> 10)) & 0x3ff;
+    Bit16u phase = (chip->fm_mod[slot] + (chip->pg_phase[slot] >> 10));
     Bit16u quarter;
     Bit16u level;
     Bit16s output;
-    if (phase & 0x100)
-    {
-        quarter = (phase ^ 0xff) & 0xff;
-    }
-    else
-    {
-        quarter = phase & 0xff;
-    }
+    quarter = phase & 0xff;
     level = logsinrom[quarter];
     /* Apply envelope */
     level += chip->eg_out[slot] << 2;
@@ -1117,7 +1078,7 @@ void OPN2_DoTimerA(ym3438_t *chip)
         chip->timer_a_overflow_flag |= chip->timer_a_overflow & chip->timer_a_enable;
     }
     chip->timer_a_overflow = (time >> 10);
-    chip->timer_a_cnt = time & 0x3ff;
+    chip->timer_a_cnt = time;
 }
 
 void OPN2_DoTimerB(ym3438_t *chip)
@@ -1196,8 +1157,8 @@ void OPN2_Reset(ym3438_t *chip, Bit32u rate, Bit32u clock)
     memset(chip, 0, sizeof(ym3438_t));
     for (i = 0; i < 24; i++)
     {
-        chip->eg_out[i] = 0x3ff;
-        chip->eg_level[i] = 0x3ff;
+        chip->eg_out[i] = 0;
+        chip->eg_level[i] = 0;
         chip->eg_state[i] = eg_num_release;
         chip->multi[i] = 1;
     }
@@ -1272,7 +1233,7 @@ void OPN2_Clock(ym3438_t *chip, Bit32s *buffer)
         chip->eg_timer &= 0xfff;
         break;
     case 2:
-        chip->pg_read = chip->pg_phase[21] & 0x3ff;
+        chip->pg_read = chip->pg_phase[21];
         chip->eg_read[1] = chip->eg_out[0];
         break;
     case 13:
@@ -1406,11 +1367,11 @@ Bit8u OPN2_Read(ym3438_t *chip, Bit32u port)
                             | ((chip->eg_read[chip->mode_test_21[0]] & 0x01) << 14);
             if (chip->mode_test_2c[4])
             {
-                testdata |= chip->ch_read & 0x1ff;
+                testdata |= chip->ch_read;
             }
             else
             {
-                testdata |= chip->fm_out[(chip->slot + 18) % 24] & 0x3fff;
+                testdata |= chip->fm_out[(chip->slot + 18) % 24];
             }
             if (chip->mode_test_21[7])
             {
@@ -1480,27 +1441,27 @@ void OPN2_GenerateResampled(ym3438_t *chip, Bit32s *buf)
         {
             switch (chip->cycles >> 2)
             {
-            case 0: // Ch 2
-                mute = chip->mute[1];
-                break;
-            case 1: // Ch 6, DAC
-                mute = chip->mute[5 + chip->dacen];
-                break;
-            case 2: // Ch 4
-                mute = chip->mute[3];
-                break;
-            case 3: // Ch 1
-                mute = chip->mute[0];
-                break;
-            case 4: // Ch 5
-                mute = chip->mute[4];
-                break;
-            case 5: // Ch 3
-                mute = chip->mute[2];
-                break;
-            default:
-                mute = 0;
-                break;
+				case 0: // Ch 2
+					mute = chip->mute[1];
+					break;
+				case 1: // Ch 6, DAC
+					mute = chip->mute[5 + chip->dacen];
+					break;
+				case 2: // Ch 4
+					mute = chip->mute[3];
+					break;
+				case 3: // Ch 1
+					mute = chip->mute[0];
+					break;
+				case 4: // Ch 5
+					mute = chip->mute[4];
+					break;
+				case 5: // Ch 3
+					mute = chip->mute[2];
+					break;
+				default:
+					mute = 0;
+					break;
             }
             OPN2_Clock(chip, buffer);
             if (!mute)
@@ -1522,16 +1483,8 @@ void OPN2_GenerateResampled(ym3438_t *chip, Bit32s *buf)
             }
             chip->writebuf_samplecnt++;
         }
-        if(!use_filter)
-        {
-            chip->samples[0] *= OUTPUT_FACTOR;
-            chip->samples[1] *= OUTPUT_FACTOR;
-        }
-        else
-        {
-            chip->samples[0] = chip->oldsamples[0] + FILTER_CUTOFF_I * (chip->samples[0]*OUTPUT_FACTOR_F - chip->oldsamples[0]);
-            chip->samples[1] = chip->oldsamples[1] + FILTER_CUTOFF_I * (chip->samples[1]*OUTPUT_FACTOR_F - chip->oldsamples[1]);
-        }
+		chip->samples[0] *= OUTPUT_FACTOR;
+		chip->samples[1] *= OUTPUT_FACTOR;
         chip->samplecnt -= chip->rateratio;
     }
     buf[0] = (Bit32s)((chip->oldsamples[0] * (chip->rateratio - chip->samplecnt)
@@ -1561,19 +1514,19 @@ void OPN2_SetOptions(Bit8u flags)
 {
     switch ((flags >> 3) & 0x03)
     {
-    case 0x00: // YM2612
-    default:
-        OPN2_SetChipType(ym3438_type_ym2612);
-        break;
-    case 0x01: // ASIC YM3438
-        OPN2_SetChipType(ym3438_type_asic);
-        break;
-    case 0x02: // Discrete YM3438
-        OPN2_SetChipType(ym3438_type_discrete);
-        break;
-    case 0x03: // YM2612 without filter emulation
-        OPN2_SetChipType(ym3438_type_ym2612_u);
-        break;
+		case 0x00: // YM2612
+		default:
+			OPN2_SetChipType(ym3438_type_ym2612);
+			break;
+		case 0x01: // ASIC YM3438
+			OPN2_SetChipType(ym3438_type_asic);
+			break;
+		case 0x02: // Discrete YM3438
+			OPN2_SetChipType(ym3438_type_discrete);
+			break;
+		case 0x03: // YM2612 without filter emulation
+			OPN2_SetChipType(ym3438_type_ym2612_u);
+			break;
     }
 }
 
