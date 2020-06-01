@@ -10,7 +10,9 @@ jobs:
       - uses: seanmiddleditch/gha-setup-vsdevenv@v1
       - uses: microsoft/setup-msbuild@master
       - run: |
-          "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vsvarsall.bat"
+          for /f "delims=" %%d in ('dir /s /b %VSINSTALLDIR%\vcvarsall.bat"') do @set myVCVARSALL=%%d
+          if not defined myVCVARSALL exit 1
+          call %myVCVARSALL%
           msbuild VGMPlay\\VGMPlay.sln /p:Platform=Win32;Configuration=Release;PlatformToolset=v142
         shell: cmd # forced to do so
       - uses: actions/upload-artifact@v2
