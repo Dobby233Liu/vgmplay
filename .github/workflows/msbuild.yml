@@ -8,5 +8,17 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: microsoft/setup-msbuild@master
-      - run: "msbuild VGMPlay\\VGMPlay.sln /p:Platform=Win32;Configuration=Release"
+      - run: "msbuild VGMPlay\\VGMPlay.sln /p:Platform=Win32;Configuration=Release;PlatformToolset=v142 /tv:Current"
         shell: cmd # forced to do so
+      - uses: actions/upload-artifact@v2
+        with:
+          # Artifact name
+          name: VGMPlay-CLI-win32-msvc
+          # A file, directory or wildcard pattern that describes what to upload
+          path: |
+              Release/*.pdb
+              Release/*.exe
+              Release/*.dll
+              Release/*.ini
+              Release/*.txt
+              !Release/vc142.pdb
