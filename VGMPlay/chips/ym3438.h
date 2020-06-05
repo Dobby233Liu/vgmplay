@@ -31,7 +31,7 @@
 
 #define RSM_FRAC 10
 #define OPN_WRITEBUF_SIZE 2048
-#define OPN_WRITEBUF_DELAY 15
+#define OPN_WRITEBUF_DELAY 10
 
 enum {
     ym3438_type_discrete = 0,   /* Discrete YM3438 (Teradrive)          */
