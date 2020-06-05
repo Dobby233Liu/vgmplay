@@ -115,7 +115,7 @@ static const Bit16u exprom[256] = {
 
 /* Note table */
 static const Bit32u fn_note[16] = {
-    0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3
+    0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3
 };
 
 /* Envelope generator */
