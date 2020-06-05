@@ -29,10 +29,10 @@
 #include <string.h>
 #include "ym3438.h"
 
-#define OUTPUT_FACTOR 11
+#define OUTPUT_FACTOR 10
 #define OUTPUT_FACTOR_F 12
-#define FILTER_CUTOFF 0.512331301282628 // 5894Hz  single pole IIR low pass
-#define FILTER_CUTOFF_I (1-FILTER_CUTOFF)
+#define FILTER_CUTOFF 0.5 // linear lowpass
+#define FILTER_CUTOFF_I 0.5
 
 enum {
     eg_num_attack = 0,
@@ -965,8 +965,8 @@ void OPN2_ChOutput(ym3438_t *chip)
     if (((cycles >> 2) == 1 && chip->dacen) || test_dac)
     {
         out = (Bit16s)chip->dacdata;
-        // out <<= 7;
-        // out >>= 7;
+        out <<= 7; // avoid banger noisy DAC waveforms aka explosions
+        out >>= 7;
     }
     else
     {
