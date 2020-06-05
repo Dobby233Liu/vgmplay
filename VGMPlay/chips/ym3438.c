@@ -115,44 +115,44 @@ static const Bit16u exprom[256] = {
 
 /* Note table */
 static const Bit32u fn_note[16] = {
-    0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3
+    0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3
 };
 
 /* Envelope generator */
 static const Bit32u eg_stephi[4][4] = {
-    { 0, 0, 0, 0 },
     { 1, 0, 0, 0 },
-    { 1, 0, 1, 0 },
-    { 1, 1, 1, 0 }
+    { 1, 1, 0, 0 },
+    { 1, 1, 1, 0 },
+    { 1, 1, 1, 1 }
 };
 
 static const Bit8u eg_am_shift[4] = {
-    7, 3, 1, 0
+    9, 6, 3, 0
 };
 
 /* Phase generator */
-static const Bit32u pg_detune[8] = { 16, 17, 19, 20, 22, 24, 27, 29 };
+static const Bit32u pg_detune[8] = { 16, 18, 20, 22, 24, 26, 28, 30 };
 
 static const Bit32u pg_lfo_sh1[8][8] = {
-    { 7, 7, 7, 7, 7, 7, 7, 7 },
-    { 7, 7, 7, 7, 7, 7, 7, 7 },
     { 7, 7, 7, 7, 7, 7, 1, 1 },
+    { 7, 7, 7, 7, 7, 1, 1, 1 },
     { 7, 7, 7, 7, 1, 1, 1, 1 },
-    { 7, 7, 7, 1, 1, 1, 1, 0 },
-    { 7, 7, 1, 1, 0, 0, 0, 0 },
-    { 7, 7, 1, 1, 0, 0, 0, 0 },
-    { 7, 7, 1, 1, 0, 0, 0, 0 }
+    { 7, 7, 7, 1, 1, 1, 1, 1 },
+    { 7, 7, 7, 1, 1, 1, 1, 1 },
+    { 7, 7, 1, 1, 1, 1, 1, 1 },
+    { 7, 1, 1, 1, 1, 1, 1, 1 },
+    { 1, 1, 1, 1, 1, 1, 1, 1 }
 };
 
 static const Bit32u pg_lfo_sh2[8][8] = {
-    { 7, 7, 7, 7, 7, 7, 7, 7 },
+    { 2, 2, 2, 2, 2, 2, 2, 2 },
+    { 7, 2, 2, 2, 2, 2, 2, 2 },
+    { 7, 7, 2, 2, 2, 2, 2, 2 },
+    { 7, 7, 7, 2, 2, 2, 2, 2 },
+    { 7, 7, 7, 2, 2, 2, 2, 2 },
     { 7, 7, 7, 7, 2, 2, 2, 2 },
-    { 7, 7, 7, 2, 2, 2, 7, 7 },
-    { 7, 7, 2, 2, 7, 7, 2, 2 },
-    { 7, 7, 2, 7, 7, 7, 2, 7 },
-    { 7, 7, 7, 2, 7, 7, 2, 1 },
-    { 7, 7, 7, 2, 7, 7, 2, 1 },
-    { 7, 7, 7, 2, 7, 7, 2, 1 }
+    { 7, 7, 7, 7, 7, 2, 2, 2 },
+    { 7, 7, 7, 7, 7, 7, 2, 2 }
 };
 
 /* Address decoder */
@@ -182,7 +182,7 @@ static const Bit32u ch_offset[6] = {
 
 /* LFO */
 static const Bit32u lfo_cycles[8] = {
-    108, 77, 71, 67, 62, 44, 8, 5
+    100, 85, 70, 55, 40, 25, 10, 0
 };
 
 /* FM algorithm */
@@ -201,7 +201,7 @@ static const Bit32u fm_algorithm[4][6][8] = {
         { 1, 1, 1, 0, 0, 0, 0, 0 }, /* OP2           */
         { 0, 0, 0, 0, 0, 0, 0, 0 }, /* Last operator */
         { 0, 0, 0, 0, 0, 0, 0, 0 }, /* Last operator */
-        { 0, 0, 0, 0, 0, 1, 1, 1 }  /* Out           */
+        { 0, 0, 0, 0, 0, 0, 1, 1 }  /* Out           */
     },
     {
         { 0, 0, 0, 0, 0, 0, 0, 0 }, /* OP1_0         */
@@ -209,7 +209,7 @@ static const Bit32u fm_algorithm[4][6][8] = {
         { 0, 0, 0, 0, 0, 0, 0, 0 }, /* OP2           */
         { 1, 0, 0, 1, 1, 1, 1, 0 }, /* Last operator */
         { 0, 0, 0, 0, 0, 0, 0, 0 }, /* Last operator */
-        { 0, 0, 0, 0, 1, 1, 1, 1 }  /* Out           */
+        { 0, 0, 0, 0, 0, 1, 1, 1 }  /* Out           */
     },
     {
         { 0, 0, 1, 0, 0, 1, 0, 0 }, /* OP1_0         */
@@ -929,15 +929,6 @@ void OPN2_ChGenerate(ym3438_t *chip)
         add += chip->fm_out[slot] >> 5;
     }
     sum = acc + add;
-    /* Clamp */
-    if (sum > 255)
-    {
-        sum = 255;
-    }
-    else if(sum < -256)
-    {
-        sum = -256;
-    }
 
     if (op == 0 || test_dac)
     {
@@ -974,8 +965,8 @@ void OPN2_ChOutput(ym3438_t *chip)
     if (((cycles >> 2) == 1 && chip->dacen) || test_dac)
     {
         out = (Bit16s)chip->dacdata;
-        out <<= 7;
-        out >>= 7;
+        // out <<= 7;
+        // out >>= 7;
     }
     else
     {
@@ -984,53 +975,15 @@ void OPN2_ChOutput(ym3438_t *chip)
     chip->mol = 0;
     chip->mor = 0;
 
-    if (chip_type == ym3438_type_ym2612)
-    {
-        out_en = ((cycles & 3) == 3) || test_dac;
-        /* YM2612 DAC emulation(not verified) */
-        sign = out >> 8;
-        if (out >= 0)
-        {
-            out++;
-            sign++;
-        }
-        if (chip->ch_lock_l && out_en)
-        {
-            chip->mol = out;
-        }
-        else
-        {
-            chip->mol = sign;
-        }
-        if (chip->ch_lock_r && out_en)
-        {
-            chip->mor = out;
-        }
-        else
-        {
-            chip->mor = sign;
-        }
-        /* Amplify signal */
-        chip->mol *= 3;
-        chip->mor *= 3;
-    }
-    else
-    {
-        out_en = ((cycles & 3) != 0) || test_dac;
-        /* Discrete YM3438 seems has the ladder effect too */
-        if (out >= 0 && chip_type == ym3438_type_discrete)
-        {
-            out++;
-        }
-        if (chip->ch_lock_l && out_en)
-        {
-            chip->mol = out;
-        }
-        if (chip->ch_lock_r && out_en)
-        {
-            chip->mor = out;
-        }
-    }
+	out_en = ((cycles & 3) != 0) || test_dac;
+	if (chip->ch_lock_l && out_en)
+	{
+		chip->mol = out;
+	}
+	if (chip->ch_lock_r && out_en)
+	{
+		chip->mor = out;
+	}
 }
 
 void OPN2_FMGenerate(ym3438_t *chip)
@@ -1058,14 +1011,7 @@ void OPN2_FMGenerate(ym3438_t *chip)
         level = 0x1fff;
     }
     output = ((exprom[(level & 0xff) ^ 0xff] | 0x400) << 2) >> (level >> 8);
-    if (phase & 0x200)
-    {
-        output = ((~output) ^ (chip->mode_test_21[4] << 13)) + 1;
-    }
-    else
-    {
-        output = output ^ (chip->mode_test_21[4] << 13);
-    }
+    output = output ^ (chip->mode_test_21[4] << 13);
     output <<= 2;
     output >>= 2;
     chip->fm_out[slot] = output;
